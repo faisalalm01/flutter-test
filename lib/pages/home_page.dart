@@ -1,10 +1,7 @@
-import 'package:curved_navigation_bar/curved_navigation_bar.dart';
-import 'package:fluter_article_app/pages/about_page.dart';
-import 'package:fluter_article_app/pages/add_page.dart';
-import 'package:fluter_article_app/pages/login_page.dart';
-import 'package:fluter_article_app/pages/visitor_page.dart';
+import 'package:fluter_article_app/models/news_model.dart';
+import 'package:fluter_article_app/services/news_api_service.dart';
+import 'package:fluter_article_app/widgets/custom_title.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,84 +11,55 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String key = '';
-  int index = 1;
-  final screens = [
-    const MorePage(),
-    const AddPage(),
-    const AboutPage(),
-  ];
-
-  getPref() async {
-    SharedPreferences pref = await SharedPreferences.getInstance();
-    var isLogin = pref.getBool("is_login");
-    if (isLogin != null && isLogin == true) {
-      setState(() {
-        // ignore: unused_local_variable
-        String? key = pref.getString('key');
-      });
-    } else {
-      // ignore: use_build_context_synchronously
-      Navigator.of(context, rootNavigator: true).pop();
-      // ignore: use_build_context_synchronously
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (BuildContext context) => const LoginPage(),
-        ),
-        (route) => false,
-      );
-    }
-  }
-
-  @override
-  void initState() {
-    getPref();
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
+  ApiService client = ApiService();
 
   @override
   Widget build(BuildContext context) {
-    // List of page
-    final items = <Widget>[
-      const Icon(Icons.format_list_bulleted_rounded, size: 30),
-      const Icon(Icons.home, size: 30),
-      const Icon(Icons.person, size: 30),
-    ];
-
-    return Container(
-      color: Colors.blue,
-      child: SafeArea(
-        top: false,
-        child: ClipRect(
-          child: Scaffold(
-            extendBody: true,
-            backgroundColor: Colors.amber,
-            body: screens[index],
-            bottomNavigationBar: Theme(
-              data: Theme.of(context).copyWith(
-                  iconTheme: const IconThemeData(color: Color.fromARGB(255, 0, 0, 0))),
-              child: CurvedNavigationBar(
-                // set duration in animation
-                animationCurve: Curves.easeInOut,
-                animationDuration: const Duration(milliseconds: 250),
-                // setting background color
-                color: Color.fromRGBO(255, 193, 7, 1),
-                // setting button hover background color
-                buttonBackgroundColor: Color.fromRGBO(255, 193, 7, 1),
-                items: items,
-                height: 55,
-                index: index,
-                backgroundColor: Colors.transparent,
-                onTap: (index) => setState(() => this.index = index),
-              ),
+    // return MaterialApp(
+    //   theme: ThemeData.fallback(),
+    // );
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark(),
+      title: "News Page",
+      home: Scaffold(
+        appBar: AppBar(
+          centerTitle: true,
+          title: const Text(
+            "Linux News",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
             ),
           ),
+        ),
+        body: FutureBuilder(
+          future: client.getArticle(),
+          builder: (BuildContext context, AsyncSnapshot<List<News>> snapshot) {
+            //let's check if we got a response or not
+            if (snapshot.hasData) {
+              //Now let's make a list of articles
+              List<News>? articles = snapshot.data;
+              return Padding(
+                padding: const EdgeInsets.only(
+                  bottom: 58,
+                  right: 10,
+                  left: 10,
+                  top: 10,
+                ),
+                child: ListView.builder(
+                  //Now let's create our custom List tile
+                  itemCount: articles?.length,
+                  itemBuilder: (context, index) =>
+                      customListTile(articles![index], context),
+                ),
+              );
+            }
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          },
         ),
       ),
     );
